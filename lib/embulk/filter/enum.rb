@@ -5,39 +5,31 @@ module Embulk
       Plugin.register_filter("enum", self)
 
       def self.transaction(config, in_schema, &control)
-        # configuration code:
         task = {
-          "option1" => config.param("option1", :integer),                     # integer, required
-          "option2" => config.param("option2", :string, default: "myvalue"),  # string, optional
-          "option3" => config.param("option3", :string, default: nil),        # string, optional
+          "enums" => config.param("enums", :array, default: [])
         }
 
-        columns = [
-          Column.new(nil, "example", :string),
-          Column.new(nil, "column", :long),
-          Column.new(nil, "value", :double),
-        ]
-
-        out_columns = in_schema + columns
-
+        out_columns = in_schema
         yield(task, out_columns)
       end
 
       def init
-        # initialization code:
-        @option1 = task["option1"]
-        @option2 = task["option2"]
-        @option3 = task["option3"]
+        @enums = task["enums"]
       end
 
       def close
       end
 
       def add(page)
-        # filtering code:
-        add_columns = ["example",1,1.0]
         page.each do |record|
-          page_builder.add(record + add_columns)
+          result = {}
+          record = Hash[in_schema.names.zip(record)]
+
+          record.each do |key, value|
+            enum = @enums.find {|e| e.key?(key) }
+            result[key] = enum.nil? ? value : enum[key]["values"][value] || enum[key]["else"]
+          end
+          page_builder.add(result.values)
         end
       end
 
