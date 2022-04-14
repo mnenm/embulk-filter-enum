@@ -4,7 +4,7 @@ module Embulk
     class Enum < FilterPlugin
       Plugin.register_filter("enum", self)
 
-      def self.transaction(config, in_schema, &control)
+      def self.transaction(config, in_schema)
         task = {
           "enums" => config.param("enums", :array, default: [])
         }
